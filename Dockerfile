@@ -19,6 +19,7 @@ RUN apt install -y -q \
     libssl-dev \
     libunwind8 \
     libunwind8-dev \
+    lld \
     lldb \
     llvm \
     make \
