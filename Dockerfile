@@ -2,10 +2,10 @@ FROM ubuntu:20.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update -y -q && apt upgrade -y -q
-RUN apt update -y -q && apt upgrade -y -q
 RUN apt install -y -q \
     build-essential \
     clang \
+    cmake \
     curl \
     gcc \
     gettext \
