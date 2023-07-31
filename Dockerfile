@@ -5,7 +5,6 @@ RUN apt update -y -q && apt upgrade -y -q
 RUN apt install -y -q \
     build-essential \
     clang \
-    cmake \
     curl \
     gcc \
     gettext \
@@ -26,7 +25,10 @@ RUN apt install -y -q \
     ninja-build \
     xz-utils \
     zlib1g-dev
- 
+
+RUN curl -sL https://github.com/Kitware/CMake/releases/download/v3.27.1/cmake-3.27.1-Linux-x86_64.tar.gz |\
+    tar zxvf - -C /usr --strip-components=1
+
 RUN echo "LC_ALL=en_US.UTF-8" >> /etc/environment && \
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
     echo "LANG=en_US.UTF-8" > /etc/locale.conf && \
