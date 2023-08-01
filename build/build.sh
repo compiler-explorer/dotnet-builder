@@ -10,6 +10,7 @@ if echo "${VERSION}" | grep -q 'trunk'; then
 else
     BRANCH="${VERSION}"
     if [[ "${VERSION:1:1}" -lt 8 ]]; then OS=Linux; fi
+    if [[ "${VERSION:1:1}" -lt 7 ]]; then CHECKED_BUILD_NEEDED=1; fi
 fi
 
 URL=https://github.com/dotnet/runtime.git
@@ -39,11 +40,17 @@ echo "HEAD is at: $commit"
 
 CORE_ROOT=artifacts/tests/coreclr/"${OS}".x64.Release/Tests/Core_Root
 
-# Build everything in Release mode
-./build.sh Clr+Libs -c Release --ninja -ci -p:OfficialBuildId=$(date +%Y%m%d)-99
+if [[ "$CHECKED_BUILD_NEEDED" -eq 1 ]]; then
+  # Build everything in Release mode
+  ./build.sh Clr+Libs -c Release --ninja -ci -p:OfficialBuildId=$(date +%Y%m%d)-99
 
-# Build Checked JIT compilers (only Checked JITs are able to print codegen)
-./build.sh Clr.AllJits -c Checked --ninja
+  # Build Checked JIT compilers (only Checked JITs are able to print codegen)
+  ./build.sh Clr.AllJits -c Checked --ninja
+else
+  # Build everything in Release mode
+  ./build.sh Clr+Clr.Aot+Libs -c Release --ninja -ci -p:OfficialBuildId=$(date +%Y%m%d)-99
+fi
+
 cd src/tests
 
 # Generate CORE_ROOT for Release
@@ -53,9 +60,11 @@ cd ../..
 # Write version info for .NET 6 (it doesn't have crossgen2 --version)
 echo "${VERSION:1}+${commit}" > ${CORE_ROOT}/version.txt
 
-# Copy Checked JITs to CORE_ROOT
-cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"
-cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"/crossgen2
+if [[ "$CHECKED_BUILD_NEEDED" -eq 1 ]]; then
+  # Copy Checked JITs to CORE_ROOT
+  cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"
+  cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"/crossgen2
+fi
 
 # Copy the bootstrapping .NET SDK, needed for 'dotnet build'
 # Exclude the pdbs as when they are present, when running on Linux we get:
