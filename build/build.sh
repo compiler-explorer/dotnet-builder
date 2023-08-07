@@ -1,10 +1,12 @@
 #!/bin/bash
 
-set -ex
+set -exu
 
 VERSION=$1
 OS=linux
 TIMESTAMP="$(date +%Y%m%d)"
+CHECKED_BUILD_NEEDED=0
+
 if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
     BRANCH=main
@@ -20,7 +22,7 @@ URL=https://github.com/dotnet/runtime.git
 FULLNAME=dotnet-${VERSION}.tar.xz
 OUTPUT=$2/${FULLNAME}
 
-DOTNET_REVISION=$(git ls-remote --heads ${URL} refs/heads/${BRANCH} | cut -f 1)
+DOTNET_REVISION=$(git ls-remote --heads ${URL} refs/heads/"${BRANCH}" | cut -f 1)
 REVISION="dotnet-${DOTNET_REVISION}"
 LAST_REVISION="${3}"
 
@@ -34,8 +36,8 @@ fi
 
 DIR=$(pwd)/dotnet/runtime
 
-git clone --depth 1 -b ${BRANCH} ${URL} ${DIR}
-cd ${DIR}
+git clone --depth 1 -b "${BRANCH}" ${URL} "${DIR}"
+cd "${DIR}"
 
 commit="$(git rev-parse HEAD)"
 echo "HEAD is at: $commit"
@@ -61,7 +63,7 @@ cd ../..
 
 if [[ "$CHECKED_BUILD_NEEDED" -eq 1 ]]; then
   # Write version info for .NET 6 (it doesn't have crossgen2 --version)
-  echo "${VERSION_WITHOUT_V}+${commit}" > ${CORE_ROOT}/version.txt
+  echo "${VERSION_WITHOUT_V}+${commit}" > "${CORE_ROOT}"/version.txt
 
   # Copy Checked JITs to CORE_ROOT
   cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"
@@ -97,9 +99,9 @@ fi
 # Error: Image is either too small or contains an invalid byte offset or count.
 # System.BadImageFormatException: Image is either too small or contains an invalid byte offset or count.
 
-cd ${DIR}
-mv .dotnet/ ${CORE_ROOT}/
-cd ${CORE_ROOT}/..
-XZ_OPT=-2 tar Jcf ${OUTPUT} --exclude \*.pdb --transform "s,^./,./dotnet-${VERSION}/," -C Core_Root .
+cd "${DIR}"
+mv .dotnet/ "${CORE_ROOT}"/
+cd "${CORE_ROOT}"/..
+XZ_OPT=-2 tar Jcf "${OUTPUT}" --exclude \*.pdb --transform "s,^./,./dotnet-${VERSION}/," -C Core_Root .
 
 echo "ce-build-status:OK"
