@@ -94,12 +94,15 @@ else
   popd
 fi
 
+cd "${DIR}"
+
+# Build DisassemblyLoader
+.dotnet/dotnet build -c Release /root/DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
+
 # Copy the bootstrapping .NET SDK, needed for 'dotnet build'
 # Exclude the pdbs as when they are present, when running on Linux we get:
 # Error: Image is either too small or contains an invalid byte offset or count.
 # System.BadImageFormatException: Image is either too small or contains an invalid byte offset or count.
-
-cd "${DIR}"
 mv .dotnet/ "${CORE_ROOT}"/
 cd "${CORE_ROOT}"/..
 XZ_OPT=-2 tar Jcf "${OUTPUT}" --exclude \*.pdb --transform "s,^./,./dotnet-${VERSION}/," -C Core_Root .
