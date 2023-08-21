@@ -97,7 +97,7 @@ fi
 cd "${DIR}"
 
 # Build DisassemblyLoader
-.dotnet/dotnet build -c Release /root/DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
+./.dotnet/dotnet build -c Release /root/DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
 
 # Copy the bootstrapping .NET SDK, needed for 'dotnet build'
 # Exclude the pdbs as when they are present, when running on Linux we get:
