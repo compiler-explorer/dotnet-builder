@@ -24,7 +24,7 @@ OUTPUT=$2/${FULLNAME}
 
 DOTNET_REVISION=$(git ls-remote --heads ${URL} refs/heads/"${BRANCH}" | cut -f 1)
 REVISION="dotnet-${DOTNET_REVISION}"
-LAST_REVISION="${3}"
+LAST_REVISION="${3:-}"
 
 echo "ce-build-revision:${REVISION}"
 echo "ce-build-output:${OUTPUT}"
