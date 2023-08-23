@@ -10,6 +10,7 @@ AOT_BUILD_NEEDED=0
 if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
     BRANCH=main
+    VERSION_WITHOUT_V="${VERSION}"
 else
     BRANCH="${VERSION}"
     VERSION_WITHOUT_V="${VERSION:1}"
