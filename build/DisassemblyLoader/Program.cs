@@ -69,6 +69,11 @@ namespace CompilerExplorer
                 if (type.TypeInitializer is ConstructorInfo initializer)
                     RuntimeHelpers.PrepareMethod(initializer.MethodHandle);
 
+                foreach (var constructor in type.GetConstructors())
+                {
+                    RuntimeHelpers.PrepareMethod(constructor.MethodHandle);
+                }
+
                 foreach (var method in type.GetRuntimeMethods())
                 {
                     ProcessMethod(method);
