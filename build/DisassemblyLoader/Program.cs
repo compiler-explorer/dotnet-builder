@@ -66,10 +66,7 @@ namespace CompilerExplorer
 
             static void PrepareType(Type type)
             {
-                if (type.TypeInitializer is ConstructorInfo initializer)
-                    RuntimeHelpers.PrepareMethod(initializer.MethodHandle);
-
-                foreach (var constructor in type.GetConstructors())
+                foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
                 {
                     RuntimeHelpers.PrepareMethod(constructor.MethodHandle);
                 }
