@@ -11,11 +11,13 @@ if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
     BRANCH=main
     VERSION_WITHOUT_V="${VERSION}"
+    AOT_BUILD_NEEDED=1
 else
     BRANCH="${VERSION}"
     VERSION_WITHOUT_V="${VERSION:1}"
-    if [[ "${VERSION:1:1}" -lt 8 ]]; then OS=Linux; fi
-    if [[ "${VERSION:1:1}" -ge 7 ]]; then AOT_BUILD_NEEDED=1; fi
+    MAJOR_VERSION="${VERSION_WITHOUT_V%%.*}"
+    if [[ "${MAJOR_VERSION}" -lt 8 ]]; then OS=Linux; fi
+    if [[ "${MAJOR_VERSION}" -ge 7 ]]; then AOT_BUILD_NEEDED=1; fi
 fi
 
 URL=https://github.com/dotnet/runtime.git
@@ -77,19 +79,25 @@ if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
   if [[ "$BRANCH" == "main" ]]; then
     ILC="$(find artifacts/bin -type f -name ilc | head -1)"
     PACKAGE_VERSION="$("${ILC}" --version)"
+    PACKAGE_VERSION="${PACKAGE_VERSION%-*}-*"
   else
     PACKAGE_VERSION="$VERSION_WITHOUT_V"
   fi
 
-  echo "$PACKAGE_VERSION" > "${CORE_ROOT}"/aot/package-version.txt
   cp artifacts/packages/Release/Shipping/*ILCompiler*.nupkg "${CORE_ROOT}"/aot
 
   # initialize AOT packages directory
   pushd /tmp
+
   "${DIR}/dotnet.sh" new console -o app
   "${DIR}/dotnet.sh" add app package "Microsoft.DotNet.ILCompiler" --version "$PACKAGE_VERSION" --package-directory "${CORE_ROOT}"/aot -s "${CORE_ROOT}"/aot
   "${DIR}/dotnet.sh" add app package "runtime.linux-x64.microsoft.dotnet.ilcompiler" --version "$PACKAGE_VERSION" --package-directory "${CORE_ROOT}"/aot -s "${CORE_ROOT}"/aot
   "${DIR}/dotnet.sh" publish -p:PublishAot=true --packages "${CORE_ROOT}"/aot app
+
+  ILC="$(find "${CORE_ROOT}"/aot -type f -name ilc | head -1)"
+  if [[ "${VERSION:0:5}" == "trunk" || "${MAJOR_VERSION}" -ge 8 ]]; then PACKAGE_VERSION="$("${ILC}" --version)"; fi
+  echo "$PACKAGE_VERSION" > "${CORE_ROOT}"/aot/package-version.txt
+
   popd
 fi
 
