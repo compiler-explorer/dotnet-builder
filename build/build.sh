@@ -92,7 +92,7 @@ if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
   "${DIR}/dotnet.sh" new console -o app
   "${DIR}/dotnet.sh" add app package "Microsoft.DotNet.ILCompiler" --version "$PACKAGE_VERSION" --package-directory "${CORE_ROOT}"/aot -s "${CORE_ROOT}"/aot
   "${DIR}/dotnet.sh" add app package "runtime.linux-x64.microsoft.dotnet.ilcompiler" --version "$PACKAGE_VERSION" --package-directory "${CORE_ROOT}"/aot -s "${CORE_ROOT}"/aot
-  "${DIR}/dotnet.sh" publish -p:PublishAot=true --packages "${CORE_ROOT}"/aot app
+  "${DIR}/dotnet.sh" publish -p:PublishAot=true --source "${CORE_ROOT}"/aot app
 
   ILC="$(find "${CORE_ROOT}"/aot -type f -name ilc | head -1)"
   if [[ "${VERSION:0:5}" == "trunk" || "${MAJOR_VERSION}" -ge 8 ]]; then PACKAGE_VERSION="$("${ILC}" --version)"; fi
