@@ -11,7 +11,7 @@ if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
     BRANCH=main
     VERSION_WITHOUT_V="${VERSION}"
-    AOT_BUILD_NEEDED=1
+    AOT_BUILD_NEEDED=0
 else
     BRANCH="${VERSION}"
     VERSION_WITHOUT_V="${VERSION:1}"
