@@ -17,7 +17,7 @@ else
     VERSION_WITHOUT_V="${VERSION:1}"
     MAJOR_VERSION="${VERSION_WITHOUT_V%%.*}"
     if [[ "${MAJOR_VERSION}" -lt 8 ]]; then OS=Linux; fi
-    if [[ "${MAJOR_VERSION}" -ge 7 ]]; then AOT_BUILD_NEEDED=1; fi
+    if [[ "${MAJOR_VERSION}" -ge 7 ]]; then AOT_BUILD_NEEDED=0; fi
 fi
 
 URL=https://github.com/dotnet/runtime.git
@@ -100,6 +100,12 @@ if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
 
   popd
 fi
+
+# create an empty F# app so the fsharp core library is downloaded from nuget
+pushd /tmp
+"${DIR}/dotnet.sh" new console -lang F# -o app
+"${DIR}/dotnet.sh" publish app
+popd
 
 cd "${DIR}"
 
