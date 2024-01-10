@@ -68,7 +68,14 @@ namespace CompilerExplorer
             {
                 foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
                 {
-                    RuntimeHelpers.PrepareMethod(constructor.MethodHandle);
+                    try
+                    {
+                        RuntimeHelpers.PrepareMethod(constructor.MethodHandle);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
                 }
 
                 foreach (var method in type.GetRuntimeMethods())
@@ -101,7 +108,14 @@ namespace CompilerExplorer
 
             static void PrepareMethod(MethodInfo method)
             {
-                RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                try
+                {
+                    RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                }
+                catch
+                {
+                    // ignored
+                }
             }
         }
     }
