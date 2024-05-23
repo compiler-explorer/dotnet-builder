@@ -11,13 +11,11 @@ if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
     BRANCH=main
     VERSION_WITHOUT_V="${VERSION}"
-    AOT_BUILD_NEEDED=0
 else
     BRANCH="${VERSION}"
     VERSION_WITHOUT_V="${VERSION:1}"
     MAJOR_VERSION="${VERSION_WITHOUT_V%%.*}"
     if [[ "${MAJOR_VERSION}" -lt 8 ]]; then OS=Linux; fi
-    if [[ "${MAJOR_VERSION}" -ge 7 ]]; then AOT_BUILD_NEEDED=1; fi
 fi
 
 URL=https://github.com/dotnet/runtime.git
