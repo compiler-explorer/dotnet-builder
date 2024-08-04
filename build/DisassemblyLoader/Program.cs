@@ -22,6 +22,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using Iced.Intel;
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -32,6 +33,17 @@ namespace CompilerExplorer
     {
         class Program
         {
+            private static readonly bool _isMonoRuntime = Type.GetType("Mono.RuntimeStructs") != null;
+            private static readonly Formatter _defaultFormatter = new IntelFormatter(new FormatterOptions
+            {
+                HexSuffix = "h",
+                OctalSuffix = "o",
+                BinarySuffix = "b",
+                FirstOperandCharIndex = 9,
+                ShowSymbolAddress = true,
+                SpaceAfterOperandSeparator = true
+            });
+
             static void Main(string[] args)
             {
                 var assembly = Assembly.LoadFile(args[0]);
@@ -68,14 +80,7 @@ namespace CompilerExplorer
             {
                 foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
                 {
-                    try
-                    {
-                        RuntimeHelpers.PrepareMethod(constructor.MethodHandle);
-                    }
-                    catch
-                    {
-                        continue;
-                    }
+                    PrepareMethod(constructor);
                 }
 
                 foreach (var method in type.GetRuntimeMethods())
@@ -106,11 +111,23 @@ namespace CompilerExplorer
                 }
             }
 
-            static void PrepareMethod(MethodInfo method)
+            static void PrepareMethod(MethodBase methodBase)
             {
                 try
                 {
-                    RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                    RuntimeHelpers.PrepareMethod(methodBase.MethodHandle);
+                    
+                    // mono runtime doesn't support JitDisasm, so we need to print the assembly manually
+                    if (_isMonoRuntime)
+                    {
+                        unsafe
+                        {
+                            if (MonoJitInspector.TryGetJitCode(methodBase.MethodHandle, out var code, out var size))
+                            {
+                                MonoJitInspector.WriteDisassembly(methodBase, (byte*)code, size, _defaultFormatter, Console.Out);
+                            }
+                        }
+                    }
                 }
                 catch
                 {

@@ -5,7 +5,7 @@ set -exu
 VERSION=$1
 OS=linux
 TIMESTAMP="$(date +%Y%m%d)"
-AOT_BUILD_NEEDED=0
+AOT_BUILD_NEEDED=1
 
 if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
@@ -16,6 +16,7 @@ else
     VERSION_WITHOUT_V="${VERSION:1}"
     MAJOR_VERSION="${VERSION_WITHOUT_V%%.*}"
     if [[ "${MAJOR_VERSION}" -lt 8 ]]; then OS=Linux; fi
+    if [[ "${MAJOR_VERSION}" -lt 7 ]]; then AOT_BUILD_NEEDED=0; fi
 fi
 
 URL=https://github.com/dotnet/runtime.git
@@ -44,12 +45,13 @@ commit="$(git rev-parse HEAD)"
 echo "HEAD is at: $commit"
 
 CORE_ROOT="$(pwd)"/artifacts/tests/coreclr/"${OS}".x64.Release/Tests/Core_Root
+CORE_ROOT_MONO="$(pwd)"/artifacts/tests/mono/"${OS}".x64.Release/Tests/Core_Root
 
 # Build everything in Release mode
 if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
-  ./build.sh Clr+Clr.Aot+Libs -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
+  ./build.sh Clr+Clr.Aot+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
 else
-  ./build.sh Clr+Libs -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
+  ./build.sh Clr+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
 fi
 
 # Build Checked JIT compilers (only Checked JITs are able to filter assembly for printing codegen)
@@ -67,42 +69,17 @@ echo "${VERSION_WITHOUT_V}+${commit}" > "${CORE_ROOT}"/version.txt
 cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"
 cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"/crossgen2
 
-if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
-  # For .NET 7 and above, copy nativeaot files at CORE_ROOT/aot
-  # later we can use `dotnet publish -p:PublishAot=true --packages "${CORE_ROOT}"/aot`
-  ./dotnet.sh build -c Release -p:ContinuousIntegrationBuild=true -p:OfficialBuildId="$TIMESTAMP"-99 \
-      src/installer/pkg/projects/nativeaot-packages.proj
+# Copy mono to CORE_ROOT_MONO
+mkdir -p "${CORE_ROOT_MONO}"
+cp -r "${CORE_ROOT}"/* "${CORE_ROOT_MONO}"
+cp -r artifacts/bin/mono/"${OS}".x64.Release/* "${CORE_ROOT_MONO}"
 
-  mkdir "${CORE_ROOT}"/aot
-  if [[ "$BRANCH" == "main" ]]; then
-    ILC="$(find artifacts/bin -type f -name ilc | head -1)"
-    PACKAGE_VERSION="$("${ILC}" --version)"
-    PACKAGE_VERSION="${PACKAGE_VERSION%-*}-*"
-  else
-    PACKAGE_VERSION="$VERSION_WITHOUT_V"
-  fi
+# Move CORE_ROOT_MONO to CORE_ROOT/mono
+mv "${CORE_ROOT_MONO}" "${CORE_ROOT}"/mono
 
-  cp artifacts/packages/Release/Shipping/*ILCompiler*.nupkg "${CORE_ROOT}"/aot
-
-  # initialize AOT packages directory
-  pushd /tmp
-
-  "${DIR}/dotnet.sh" new console -o app
-  "${DIR}/dotnet.sh" add app package "Microsoft.DotNet.ILCompiler" --version "$PACKAGE_VERSION" --package-directory "${CORE_ROOT}"/aot -s "${CORE_ROOT}"/aot
-  "${DIR}/dotnet.sh" add app package "runtime.linux-x64.Microsoft.DotNet.ILCompiler" --version "$PACKAGE_VERSION" --package-directory "${CORE_ROOT}"/aot -s "${CORE_ROOT}"/aot
-  "${DIR}/dotnet.sh" publish -p:PublishAot=true --source "${CORE_ROOT}"/aot app
-
-  ILC="$(find "${CORE_ROOT}"/aot -type f -name ilc | head -1)"
-  if [[ "${VERSION:0:5}" == "trunk" || "${MAJOR_VERSION}" -ge 8 ]]; then PACKAGE_VERSION="$("${ILC}" --version)"; fi
-  echo "$PACKAGE_VERSION" > "${CORE_ROOT}"/aot/package-version.txt
-
-  popd
-fi
-
+# Runtime build is done, now build the DisassemblyLoader
 cd "${DIR}"
-
-# Build DisassemblyLoader
-./.dotnet/dotnet build -c Release /root/DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
+./.dotnet/dotnet build -c Release "$(dirname "$0")"/DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
 
 # Copy the bootstrapping .NET SDK, needed for 'dotnet build'
 # Exclude the pdbs as when they are present, when running on Linux we get:
