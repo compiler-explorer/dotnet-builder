@@ -41,7 +41,9 @@ namespace CompilerExplorer
                 BinarySuffix = "b",
                 FirstOperandCharIndex = 9,
                 ShowSymbolAddress = true,
-                SpaceAfterOperandSeparator = true
+                SpaceAfterOperandSeparator = true,
+                RipRelativeAddresses = true,
+                SignedImmediateOperands = true,
             });
 
             static void Main(string[] args)

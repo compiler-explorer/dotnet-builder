@@ -67,8 +67,9 @@ namespace CompilerExplorer
                 var output = new StringOutput();
                 decoder.IP = (ulong)code;
                 ulong tail = (ulong)(code + size);
+                var methodName = FormatMethodName(method);
 
-                WriteComment(writer, $"Assembly listing for method {FormatMethodName(method)}:");
+                WriteComment(writer, $"Assembly listing for method {methodName}:");
 
                 while (decoder.IP < tail)
                 {
@@ -78,7 +79,7 @@ namespace CompilerExplorer
                     writer.WriteLine(output.ToStringAndReset());
                 }
 
-                WriteComment(writer, $"Total bytes of code {size}");
+                WriteComment(writer, $"Total bytes of code {size} (MethodHandle={method.MethodHandle.Value:X}, EntryPoint={(nint)code:X}) for method {methodName}");
                 WriteComment(writer, "============================================================");
                 writer.WriteLine();
             }
