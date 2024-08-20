@@ -131,9 +131,16 @@ namespace CompilerExplorer
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // ignored
+                    Console.WriteLine($"; Failed to generate code for '{methodBase}':");
+                    var diagInfo = ex.ToString();
+                    foreach (var line in diagInfo.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        Console.WriteLine($"; {line}");
+                    }
+                    Console.WriteLine("============================================================");
+                    throw;
                 }
             }
         }
