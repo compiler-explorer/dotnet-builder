@@ -140,7 +140,6 @@ namespace CompilerExplorer
                         Console.WriteLine($"; {line}");
                     }
                     Console.WriteLine("============================================================");
-                    throw;
                 }
             }
         }
