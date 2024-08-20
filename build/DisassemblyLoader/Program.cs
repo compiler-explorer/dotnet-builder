@@ -134,8 +134,7 @@ namespace CompilerExplorer
                 catch (Exception ex)
                 {
                     Console.WriteLine($"; Failed to generate code for '{methodBase}':");
-                    var diagInfo = ex.ToString();
-                    foreach (var line in diagInfo.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                    foreach (var line in ex.ToString().AsSpan().EnumerateLines())
                     {
                         Console.WriteLine($"; {line}");
                     }
