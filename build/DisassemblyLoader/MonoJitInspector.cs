@@ -30,6 +30,7 @@ using static CompilerExplorer.DisassemblyLoader.MonoInterop;
 using System.Text;
 using System.Linq;
 using Decoder = Iced.Intel.Decoder;
+using System.Runtime.InteropServices;
 
 namespace CompilerExplorer
 {
@@ -79,7 +80,7 @@ namespace CompilerExplorer
                     writer.WriteLine(output.ToStringAndReset());
                 }
 
-                WriteComment(writer, $"Total bytes of code {size} (MethodHandle={method.MethodHandle.Value:X}, EntryPoint={(nint)code:X}) for method {methodName}");
+                WriteComment(writer, $"Total bytes of code {size} for method {methodName}");
                 WriteComment(writer, "============================================================");
                 writer.WriteLine();
             }
@@ -131,6 +132,22 @@ namespace CompilerExplorer
                     return -1;
 
                 return Pointer[Offset++];
+            }
+        }
+
+        internal sealed unsafe class MonoSymbolResolver : ISymbolResolver
+        {
+            public bool TryGetSymbol(in Instruction instruction, int operand, int instructionOperand, ulong address, int addressSize, out SymbolResult symbol)
+            {
+                var name = mono_pmip((void*)address);
+                if (name == null)
+                {
+                    symbol = default;
+                    return false;
+                }
+
+                symbol = new SymbolResult(address, $"{address:X}h ; {(Marshal.PtrToStringAnsi((nint)name) ?? "unknown").Trim()}");
+                return true;
             }
         }
     }

@@ -41,6 +41,9 @@ namespace CompilerExplorer
 
             [DllImport("__Internal", ExactSpelling = true)]
             public static extern int mono_jit_info_get_code_size(void* ji);
+
+            [DllImport("__Internal", ExactSpelling = true)]
+            public static extern void* mono_pmip(void* ip);
         }
     }
 }

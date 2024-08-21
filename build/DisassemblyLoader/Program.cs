@@ -44,7 +44,8 @@ namespace CompilerExplorer
                 SpaceAfterOperandSeparator = true,
                 RipRelativeAddresses = true,
                 SignedImmediateOperands = true,
-            });
+                BranchLeadingZeros = false,
+            }, new MonoSymbolResolver());
 
             static void Main(string[] args)
             {
@@ -118,7 +119,7 @@ namespace CompilerExplorer
                 try
                 {
                     RuntimeHelpers.PrepareMethod(methodBase.MethodHandle);
-                    
+
                     // mono runtime doesn't support JitDisasm, so we need to print the assembly manually
                     if (_isMonoRuntime)
                     {
@@ -138,7 +139,8 @@ namespace CompilerExplorer
                     {
                         Console.WriteLine($"; {line}");
                     }
-                    Console.WriteLine("============================================================");
+                    Console.WriteLine("; ============================================================");
+                    Console.WriteLine();
                 }
             }
         }
