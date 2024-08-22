@@ -79,7 +79,7 @@ mv "${CORE_ROOT_MONO}" "${CORE_ROOT}"/mono
 
 # Runtime build is done, now build the DisassemblyLoader
 cd "${DIR}"
-./.dotnet/dotnet build -c Release "$(dirname "$0")"/DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
+./.dotnet/dotnet build -c Release ../../DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
 
 # Copy the bootstrapping .NET SDK, needed for 'dotnet build'
 # Exclude the pdbs as when they are present, when running on Linux we get:
