@@ -68,6 +68,9 @@ echo "${VERSION_WITHOUT_V}+${commit}" > "${CORE_ROOT}"/version.txt
 # Copy Checked JITs to CORE_ROOT
 cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"
 cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"/crossgen2
+if [ -d "${CORE_ROOT}"/ilc-published ]; then
+    cp artifacts/bin/coreclr/"${OS}".x64.Checked/libclrjit*.so "${CORE_ROOT}"/ilc-published
+fi
 
 # Copy mono to CORE_ROOT_MONO
 mkdir -p "${CORE_ROOT_MONO}"
