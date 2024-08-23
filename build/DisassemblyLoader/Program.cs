@@ -134,7 +134,7 @@ namespace CompilerExplorer
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"; Failed to generate code for '{methodBase}':");
+                    Console.WriteLine($"; Failed to generate code for method {methodBase}");
                     foreach (var line in ex.ToString().AsSpan().EnumerateLines())
                     {
                         Console.WriteLine($"; {line}");

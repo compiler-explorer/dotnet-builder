@@ -70,7 +70,7 @@ namespace CompilerExplorer
                 ulong tail = (ulong)(code + size);
                 var methodName = FormatMethodName(method);
 
-                WriteComment(writer, $"Assembly listing for method {methodName}:");
+                WriteComment(writer, $"Assembly listing for method {methodName}");
 
                 while (decoder.IP < tail)
                 {
