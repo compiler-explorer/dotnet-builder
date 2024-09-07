@@ -146,7 +146,7 @@ namespace CompilerExplorer
                     return false;
                 }
 
-                symbol = new SymbolResult(address, $"{address:X}h ; {(Marshal.PtrToStringAnsi((nint)name) ?? "unknown").Trim()}");
+                symbol = new SymbolResult(address, Marshal.PtrToStringAnsi((nint)name)?.Trim() ?? "unknown");
                 return true;
             }
         }
