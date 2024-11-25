@@ -6,16 +6,21 @@ VERSION=$1
 OS=linux
 TIMESTAMP="$(date +%Y%m%d)"
 AOT_BUILD_NEEDED=1
+ILSPYCMD_VERSION="latest"
 
 if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
     BRANCH=main
     VERSION_WITHOUT_V="${VERSION}"
+    ILSPYCMD_VERSION="preview"
 else
     BRANCH="${VERSION}"
     VERSION_WITHOUT_V="${VERSION:1}"
     MAJOR_VERSION="${VERSION_WITHOUT_V%%.*}"
-    if [[ "${MAJOR_VERSION}" -lt 8 ]]; then OS=Linux; fi
+    if [[ "${MAJOR_VERSION}" -lt 8 ]]; then
+        OS=Linux
+        ILSPYCMD_VERSION="8.2.0.7535"
+    fi
     if [[ "${MAJOR_VERSION}" -lt 7 ]]; then AOT_BUILD_NEEDED=0; fi
 fi
 
@@ -85,7 +90,13 @@ cd "${DIR}"
 ./.dotnet/dotnet build -c Release ../../DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
 
 # Install ilspycmd
-./.dotnet/dotnet tool install --tool-path "${CORE_ROOT}"/dotnet-tools ilspycmd --prerelease --add-source https://api.nuget.org/v3/index.json
+if [[ "${ILSPYCMD_VERSION}" == "preview" ]]; then
+    ./.dotnet/dotnet tool install --tool-path "${CORE_ROOT}"/dotnet-tools ilspycmd --prerelease --add-source https://api.nuget.org/v3/index.json
+elif [[ "${ILSPYCMD_VERSION}" == "latest" ]]; then
+    ./.dotnet/dotnet tool install --tool-path "${CORE_ROOT}"/dotnet-tools ilspycmd --add-source https://api.nuget.org/v3/index.json
+else
+    ./.dotnet/dotnet tool install --tool-path "${CORE_ROOT}"/dotnet-tools ilspycmd --version ${ILSPYCMD_VERSION} --add-source https://api.nuget.org/v3/index.json
+fi
 
 # Copy the bootstrapping .NET SDK, needed for 'dotnet build'
 # Exclude the pdbs as when they are present, when running on Linux we get:
