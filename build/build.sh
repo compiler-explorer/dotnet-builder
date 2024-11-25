@@ -84,6 +84,9 @@ mv "${CORE_ROOT_MONO}" "${CORE_ROOT}"/mono
 cd "${DIR}"
 ./.dotnet/dotnet build -c Release ../../DisassemblyLoader/DisassemblyLoader.csproj -o "${CORE_ROOT}"/DisassemblyLoader
 
+# Install ilspycmd
+./.dotnet/dotnet tool install --tool-path "${CORE_ROOT}"/dotnet-tools ilspycmd --prerelease --add-source https://api.nuget.org/v3/index.json
+
 # Copy the bootstrapping .NET SDK, needed for 'dotnet build'
 # Exclude the pdbs as when they are present, when running on Linux we get:
 # Error: Image is either too small or contains an invalid byte offset or count.
