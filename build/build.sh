@@ -7,6 +7,7 @@ OS=linux
 TIMESTAMP="$(date +%Y%m%d)"
 AOT_BUILD_NEEDED=1
 ILSPYCMD_VERSION="latest"
+CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64")
 
 if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
@@ -84,6 +85,15 @@ cp -r artifacts/bin/mono/"${OS}".x64.Release/* "${CORE_ROOT_MONO}"
 
 # Move CORE_ROOT_MONO to CORE_ROOT/mono
 mv "${CORE_ROOT_MONO}" "${CORE_ROOT}"/mono
+
+# Build CoreLib for each architecture
+mkdir "${CORE_ROOT}"/corelib
+
+for ARCH in "${CORELIB_ARCHITECTURES[@]}"; do
+    ./build.sh -s clr.corelib -arch "$ARCH" -c Release
+    mkdir "${CORE_ROOT}"/corelib/"$ARCH"
+    cp -r artifacts/bin/coreclr/linux."$ARCH".Release/IL/* "${CORE_ROOT}"/corelib/"$ARCH"
+done
 
 # Runtime build is done, now build the DisassemblyLoader
 cd "${DIR}"
