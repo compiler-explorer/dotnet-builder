@@ -90,6 +90,7 @@ mv "${CORE_ROOT_MONO}" "${CORE_ROOT}"/mono
 mkdir "${CORE_ROOT}"/corelib
 
 for ARCH in "${CORELIB_ARCHITECTURES[@]}"; do
+    cd "${DIR}"
     ./build.sh -s clr.corelib -arch "$ARCH" -c Release
     mkdir "${CORE_ROOT}"/corelib/"$ARCH"
     cp -r artifacts/bin/coreclr/linux."$ARCH".Release/IL/* "${CORE_ROOT}"/corelib/"$ARCH"
