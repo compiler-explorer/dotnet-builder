@@ -7,20 +7,22 @@ OS=linux
 TIMESTAMP="$(date +%Y%m%d)"
 AOT_BUILD_NEEDED=1
 ILSPYCMD_VERSION="latest"
-CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64")
-ALL_JITS_SUBSET="Clr.AllJits"
+CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64" "loongarch64" "riscv64")
+ALL_JITS_SUBSET="Clr.AllJitsCommunity"
 
 if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
     BRANCH=main
     VERSION_WITHOUT_V="${VERSION}"
     ILSPYCMD_VERSION="preview"
-    ALL_JITS_SUBSET="Clr.AllJitsCommunity"
-    CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64" "loongarch64" "riscv64")
 else
     BRANCH="${VERSION}"
     VERSION_WITHOUT_V="${VERSION:1}"
     MAJOR_VERSION="${VERSION_WITHOUT_V%%.*}"
+    if [[ "${MAJOR_VERSION}" -lt 10 ]]; then
+        ALL_JITS_SUBSET="Clr.AllJits"
+        CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64")
+    fi
     if [[ "${MAJOR_VERSION}" -lt 8 ]]; then
         OS=Linux
         ILSPYCMD_VERSION="8.2.0.7535"
