@@ -7,7 +7,8 @@ OS=linux
 TIMESTAMP="$(date +%Y%m%d)"
 AOT_BUILD_NEEDED=1
 ILSPYCMD_VERSION="latest"
-CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64")
+CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64" "loongarch64" "riscv64")
+ALL_JITS_SUBSET="Clr.AllJitsCommunity"
 
 if echo "${VERSION}" | grep -q 'trunk'; then
     VERSION=trunk-"$TIMESTAMP"
@@ -18,6 +19,10 @@ else
     BRANCH="${VERSION}"
     VERSION_WITHOUT_V="${VERSION:1}"
     MAJOR_VERSION="${VERSION_WITHOUT_V%%.*}"
+    if [[ "${MAJOR_VERSION}" -lt 10 ]]; then
+        ALL_JITS_SUBSET="Clr.AllJits"
+        CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64")
+    fi
     if [[ "${MAJOR_VERSION}" -lt 8 ]]; then
         OS=Linux
         ILSPYCMD_VERSION="8.2.0.7535"
@@ -55,13 +60,13 @@ CORE_ROOT_MONO="$(pwd)"/artifacts/tests/mono/"${OS}".x64.Release/Tests/Core_Root
 
 # Build everything in Release mode
 if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
-  ./build.sh Clr+Clr.Aot+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
+  ./build.sh Clr+$ALL_JITS_SUBSET+Clr.Aot+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
 else
-  ./build.sh Clr+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
+  ./build.sh Clr+$ALL_JITS_SUBSET+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
 fi
 
 # Build Checked JIT compilers (only Checked JITs are able to filter assembly for printing codegen)
-./build.sh Clr.AllJits -c Checked --ninja
+./build.sh $ALL_JITS_SUBSET -c Checked --ninja
 
 cd src/tests
 
