@@ -109,7 +109,7 @@ if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
     fi
     for ARCH in "${NATIVEAOT_ARCHITECTURES[@]}"; do
         cd "${DIR}"
-        ./build.sh -s clr.nativeaotruntime+clr.nativeaotlibs -arch "$ARCH" -c Release
+        ./build.sh -s clr.nativeaotruntime+clr.nativeaotlibs -arch "$ARCH" -c Release --ninja
         mkdir "${CORE_ROOT}"/aotsdk/"$ARCH"
         cp -r artifacts/bin/coreclr/"${OS}"."$ARCH".Release/aotsdk/* "${CORE_ROOT}"/aotsdk/"$ARCH"
     done
