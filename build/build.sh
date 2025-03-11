@@ -8,6 +8,7 @@ TIMESTAMP="$(date +%Y%m%d)"
 AOT_BUILD_NEEDED=1
 ILSPYCMD_VERSION="latest"
 CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64" "loongarch64" "riscv64")
+NATIVEAOT_ARCHITECTURES=("x64" "arm" "arm64" "loongarch64" "riscv64")
 ALL_JITS_SUBSET="Clr.AllJitsCommunity"
 
 if echo "${VERSION}" | grep -q 'trunk'; then
@@ -60,9 +61,9 @@ CORE_ROOT_MONO="$(pwd)"/artifacts/tests/mono/"${OS}".x64.Release/Tests/Core_Root
 
 # Build everything in Release mode
 if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
-  ./build.sh Clr+$ALL_JITS_SUBSET+Clr.Aot+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
+    ./build.sh Clr+$ALL_JITS_SUBSET+Clr.Aot+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
 else
-  ./build.sh Clr+$ALL_JITS_SUBSET+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
+    ./build.sh Clr+$ALL_JITS_SUBSET+Libs+Mono -c Release --ninja -ci -p:OfficialBuildId="$TIMESTAMP"-99
 fi
 
 # Build Checked JIT compilers (only Checked JITs are able to filter assembly for printing codegen)
@@ -100,6 +101,19 @@ for ARCH in "${CORELIB_ARCHITECTURES[@]}"; do
     mkdir "${CORE_ROOT}"/corelib/"$ARCH"
     cp -r artifacts/bin/coreclr/"${OS}"."$ARCH".Release/IL/* "${CORE_ROOT}"/corelib/"$ARCH"
 done
+
+if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
+    # Build NativeAOT sdk for each architecture
+    if [ ! -d runtime ]; then
+        mkdir "${CORE_ROOT}"/aotsdk
+    fi
+    for ARCH in "${NATIVEAOT_ARCHITECTURES[@]}"; do
+        cd "${DIR}"
+        ./build.sh -s clr.corelib -arch "$ARCH" -c Release
+        mkdir "${CORE_ROOT}"/aotsdk/"$ARCH"
+        cp -r artifacts/bin/coreclr/"${OS}"."$ARCH".Release/aotsdk/* "${CORE_ROOT}"/aotsdk/"$ARCH"
+    done
+fi
 
 # Runtime build is done, now build the DisassemblyLoader
 cd "${DIR}"
