@@ -104,7 +104,7 @@ done
 
 if [[ "$AOT_BUILD_NEEDED" -eq 1 ]]; then
     # Build NativeAOT sdk for each architecture
-    if [ ! -d runtime ]; then
+    if [ ! -d "${CORE_ROOT}"/aotsdk ]; then
         mkdir "${CORE_ROOT}"/aotsdk
     fi
     for ARCH in "${NATIVEAOT_ARCHITECTURES[@]}"; do
