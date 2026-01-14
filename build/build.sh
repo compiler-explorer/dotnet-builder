@@ -23,6 +23,7 @@ else
     if [[ "${MAJOR_VERSION}" -lt 10 ]]; then
         ALL_JITS_SUBSET="Clr.AllJits"
         CORELIB_ARCHITECTURES=("x86" "x64" "arm" "arm64")
+        NATIVEAOT_ARCHITECTURES=("x64")
     fi
     if [[ "${MAJOR_VERSION}" -lt 8 ]]; then
         OS=Linux
