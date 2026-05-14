@@ -51,9 +51,12 @@ namespace CompilerExplorer
                 BranchLeadingZeros = false,
             }, new MonoSymbolResolver());
 
+            private static DisassemblerOptions _options = default!;
+
             static void Main(string[] args)
             {
                 var assembly = Assembly.LoadFile(args[0]);
+                _options = assembly.GetCustomAttribute<DisassemblerOptions>() ?? new DisassemblerOptions();
 
                 foreach (var type in assembly.GetTypes())
                 {
@@ -96,6 +99,24 @@ namespace CompilerExplorer
                 if (!_preparedTypes.Add(type))
                 {
                     return;
+                }
+
+                if (_options.RunClassConstructor)
+                {
+                    try
+                    {
+                        RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"; Failed to run class constructor for type {type}");
+                        foreach (var line in ex.ToString().AsSpan().EnumerateLines())
+                        {
+                            Console.WriteLine($"; {line}");
+                        }
+                        Console.WriteLine("; ============================================================");
+                        Console.WriteLine();
+                    }
                 }
 
                 foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
@@ -302,5 +323,11 @@ namespace CompilerExplorer
         public string MethodName { get; }
         public Type[] GenericTypeArguments { get; } = Type.EmptyTypes;
         public Type[] GenericMethodArguments { get; } = Type.EmptyTypes;
+    }
+
+    [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = false)]
+    public sealed class DisassemblerOptions : Attribute
+    {
+        public bool RunClassConstructor { get; set; } = true;
     }
 }
