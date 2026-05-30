@@ -24,6 +24,8 @@
 
 using Iced.Intel;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -34,6 +36,8 @@ namespace CompilerExplorer
         class Program
         {
             private static readonly bool _isMonoRuntime = Type.GetType("Mono.RuntimeStructs") != null;
+            private static readonly HashSet<MethodBase> _preparedMethods = new();
+            private static readonly HashSet<Type> _preparedTypes = new();
             private static readonly Formatter _defaultFormatter = new IntelFormatter(new FormatterOptions
             {
                 HexSuffix = "h",
@@ -47,13 +51,21 @@ namespace CompilerExplorer
                 BranchLeadingZeros = false,
             }, new MonoSymbolResolver());
 
+            private static DisassemblerOptions _options = default!;
+
             static void Main(string[] args)
             {
                 var assembly = Assembly.LoadFile(args[0]);
+                _options = assembly.GetCustomAttribute<DisassemblerOptions>() ?? new DisassemblerOptions();
 
                 foreach (var type in assembly.GetTypes())
                 {
                     ProcessType(type);
+                }
+
+                foreach (var attr in assembly.GetCustomAttributes<MethodInstantiationAttribute>())
+                {
+                    ProcessInstantiation(assembly, containingType: null, attr);
                 }
             }
 
@@ -65,7 +77,9 @@ namespace CompilerExplorer
                     {
                         try
                         {
-                            PrepareType(type.MakeGenericType(attr.GenericArguments));
+                            var genericType = type.MakeGenericType(attr.GenericArguments);
+                            PrepareType(genericType);
+                            ProcessTypeInstantiations(genericType);
                         }
                         catch
                         {
@@ -76,11 +90,35 @@ namespace CompilerExplorer
                 else
                 {
                     PrepareType(type);
+                    ProcessTypeInstantiations(type);
                 }
             }
 
             static void PrepareType(Type type)
             {
+                if (!_preparedTypes.Add(type))
+                {
+                    return;
+                }
+
+                if (_options.RunClassConstructor)
+                {
+                    try
+                    {
+                        RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"; Failed to run class constructor for type {type}");
+                        foreach (var line in ex.ToString().AsSpan().EnumerateLines())
+                        {
+                            Console.WriteLine($"; {line}");
+                        }
+                        Console.WriteLine("; ============================================================");
+                        Console.WriteLine();
+                    }
+                }
+
                 foreach (var constructor in type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static))
                 {
                     PrepareMethod(constructor);
@@ -100,7 +138,9 @@ namespace CompilerExplorer
                     {
                         try
                         {
-                            PrepareMethod(method.MakeGenericMethod(attr.GenericArguments));
+                            var genericMethod = method.MakeGenericMethod(attr.GenericArguments);
+                            PrepareMethod(genericMethod);
+                            PrepareStateMachineType(genericMethod);
                         }
                         catch
                         {
@@ -111,11 +151,99 @@ namespace CompilerExplorer
                 else
                 {
                     PrepareMethod(method);
+                    PrepareStateMachineType(method);
                 }
+            }
+
+            static void ProcessTypeInstantiations(Type type)
+            {
+                var definition = type.IsGenericType && !type.IsGenericTypeDefinition ? type.GetGenericTypeDefinition() : type;
+                foreach (var attr in definition.GetCustomAttributes<MethodInstantiationAttribute>())
+                {
+                    ProcessInstantiation(type.Assembly, type, attr);
+                }
+            }
+
+            static void ProcessInstantiation(Assembly assembly, Type? containingType, MethodInstantiationAttribute attr)
+            {
+                var type = attr.TypeName == null ? containingType : assembly.GetType(attr.TypeName);
+                if (type == null)
+                {
+                    return;
+                }
+
+                if (type.ContainsGenericParameters)
+                {
+                    try
+                    {
+                        type = type.GetGenericTypeDefinition().MakeGenericType(attr.GenericTypeArguments);
+                    }
+                    catch
+                    {
+                        return;
+                    }
+                }
+
+                foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+                    .Where(method => method.Name == attr.MethodName))
+                {
+                    try
+                    {
+                        if (method.IsGenericMethodDefinition)
+                        {
+                            if (method.GetGenericArguments().Length != attr.GenericMethodArguments.Length)
+                            {
+                                continue;
+                            }
+
+                            var genericMethod = method.MakeGenericMethod(attr.GenericMethodArguments);
+                            PrepareMethod(genericMethod);
+                            PrepareStateMachineType(genericMethod);
+                        }
+                        else if (attr.GenericMethodArguments.Length == 0)
+                        {
+                            PrepareMethod(method);
+                            PrepareStateMachineType(method);
+                        }
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            static void PrepareStateMachineType(MethodInfo method)
+            {
+                var stateMachineType = method.GetCustomAttribute<StateMachineAttribute>()?.StateMachineType;
+                if (stateMachineType == null)
+                {
+                    return;
+                }
+
+                if (stateMachineType.ContainsGenericParameters)
+                {
+                    var genericArguments = (method.DeclaringType?.GetGenericArguments() ?? Type.EmptyTypes)
+                        .Concat(method.IsGenericMethod ? method.GetGenericArguments() : Type.EmptyTypes)
+                        .ToArray();
+                    if (genericArguments.Any(argument => argument.ContainsGenericParameters))
+                    {
+                        return;
+                    }
+
+                    stateMachineType = stateMachineType.GetGenericTypeDefinition().MakeGenericType(genericArguments);
+                }
+
+                PrepareType(stateMachineType);
             }
 
             static void PrepareMethod(MethodBase methodBase)
             {
+                if (!_preparedMethods.Add(methodBase))
+                {
+                    return;
+                }
+
                 try
                 {
                     RuntimeHelpers.PrepareMethod(methodBase.MethodHandle);
@@ -155,5 +283,51 @@ namespace CompilerExplorer
         }
 
         public Type[] GenericArguments { get; }
+    }
+
+    [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = true)]
+    public sealed class MethodInstantiationAttribute : Attribute
+    {
+        public MethodInstantiationAttribute(string typeName, string methodName, Type[]? genericTypeArguments, Type[]? genericMethodArguments)
+        {
+            TypeName = typeName;
+            MethodName = methodName;
+            GenericTypeArguments = genericTypeArguments ?? Type.EmptyTypes;
+            GenericMethodArguments = genericMethodArguments ?? Type.EmptyTypes;
+        }
+
+        public MethodInstantiationAttribute(string typeName, string methodName, string[]? genericTypeArguments, string[]? genericMethodArguments)
+        {
+            TypeName = typeName;
+            MethodName = methodName;
+            GenericTypeArguments = (genericTypeArguments ?? Array.Empty<string>())
+                .Select(name => Type.GetType(name)).Where(t => t != null).ToArray()!;
+            GenericMethodArguments = (genericMethodArguments ?? Array.Empty<string>())
+                .Select(name => Type.GetType(name)).Where(t => t != null).ToArray()!;
+        }
+
+        public MethodInstantiationAttribute(string methodName, Type[]? genericMethodArguments)
+        {
+            MethodName = methodName;
+            GenericMethodArguments = genericMethodArguments ?? Type.EmptyTypes;
+        }
+
+        public MethodInstantiationAttribute(string methodName, string[]? genericMethodArguments)
+        {
+            MethodName = methodName;
+            GenericMethodArguments = (genericMethodArguments ?? Array.Empty<string>())
+                .Select(name => Type.GetType(name)).Where(t => t != null).ToArray()!;
+        }
+
+        public string? TypeName { get; }
+        public string MethodName { get; }
+        public Type[] GenericTypeArguments { get; } = Type.EmptyTypes;
+        public Type[] GenericMethodArguments { get; } = Type.EmptyTypes;
+    }
+
+    [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = false)]
+    public sealed class DisassemblerOptions : Attribute
+    {
+        public bool RunClassConstructor { get; set; } = true;
     }
 }
