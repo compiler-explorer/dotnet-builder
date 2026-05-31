@@ -51,12 +51,12 @@ namespace CompilerExplorer
                 BranchLeadingZeros = false,
             }, new MonoSymbolResolver());
 
-            private static DisassemblerOptions _options = default!;
+            private static DisassemblerOptionsAttribute _options = default!;
 
             static void Main(string[] args)
             {
                 var assembly = Assembly.LoadFile(args[0]);
-                _options = assembly.GetCustomAttribute<DisassemblerOptions>() ?? new DisassemblerOptions();
+                _options = assembly.GetCustomAttribute<DisassemblerOptionsAttribute>() ?? new DisassemblerOptionsAttribute();
 
                 foreach (var type in assembly.GetTypes())
                 {
@@ -326,7 +326,7 @@ namespace CompilerExplorer
     }
 
     [AttributeUsage(AttributeTargets.Assembly, Inherited = false, AllowMultiple = false)]
-    public sealed class DisassemblerOptions : Attribute
+    public sealed class DisassemblerOptionsAttribute : Attribute
     {
         public bool RunClassConstructor { get; set; } = true;
     }
